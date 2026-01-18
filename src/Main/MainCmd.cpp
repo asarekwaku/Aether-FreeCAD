@@ -45,8 +45,8 @@ using App::Application;
 using Base::Console;
 
 const char sBanner[]
-    = "(C) 2001-2025 FreeCAD contributors\n"
-      "FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.\n\n";
+    = "(C) 2026 VentX contributors\n"
+      "VentX is proprietary software.\n\n";
 
 int main(int argc, char** argv)
 {
@@ -63,8 +63,8 @@ int main(int argc, char** argv)
 #endif
 
     // Name and Version of the Application
-    App::Application::Config()["ExeName"] = "FreeCAD";
-    App::Application::Config()["ExeVendor"] = "FreeCAD";
+    App::Application::Config()["ExeName"] = "VentX";
+    App::Application::Config()["ExeVendor"] = "VentX";
     App::Application::Config()["AppDataSkipVendor"] = "true";
 
     // set the banner (for logging and console)
@@ -79,6 +79,9 @@ int main(int argc, char** argv)
 
         // Inits the Application
         App::Application::init(argc, argv);
+
+        // Load VantX integration if available
+        Base::Interpreter().tryLoadVantXBootstrap();
     }
     catch (const Base::UnknownProgramOption& e) {
         std::cerr << e.what();
@@ -143,7 +146,7 @@ int main(int argc, char** argv)
     }
 
     // Destruction phase ===========================================================
-    Console().log("FreeCAD terminating...\n");
+    Console().log("VentX terminating...\n");
 
     try {
         // close open documents
@@ -155,7 +158,7 @@ int main(int argc, char** argv)
     // cleans up
     Application::destruct();
 
-    Console().log("FreeCAD completely terminated\n");
+    Console().log("VentX completely terminated\n");
 
     return 0;
 }

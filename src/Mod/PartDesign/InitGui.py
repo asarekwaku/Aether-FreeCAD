@@ -46,7 +46,12 @@ class PartDesignWorkbench(Workbench):
         except RuntimeError:
             print("{}".format(traceback.format_exc()))
         except ImportError:
-            print("Wizard shaft module cannot be loaded")
+            # WizardShaft is optional; it depends on additional Python packages (e.g. numpy).
+            # Keep PartDesign usable even if those dependencies are missing.
+            try:
+                FreeCAD.Console.PrintLog("PartDesign: WizardShaft not available; continuing without it.\n")
+            except Exception:
+                pass
             try:
                 from FeatureHole import HoleGui
             except Exception:

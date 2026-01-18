@@ -25,14 +25,27 @@ p = FreeCAD.ParamGet("User parameter:Tux")
 
 # Navigation indicator
 if p.GetGroup("NavigationIndicator").GetBool("Enabled", 1):
-    import NavigationIndicatorGui
+    try:
+        import NavigationIndicatorGui
+    except Exception:
+        # Keep FreeCAD usable even if Qt/PySide wrapping fails on a given platform.
+        import FreeCAD
+        import traceback
+        FreeCAD.Console.PrintWarning("Tux: NavigationIndicator failed to load; continuing without it.\n")
+        FreeCAD.Console.PrintLog(traceback.format_exc() + "\n")
 else:
     pass
 
 
 # Persistent toolbars
 if p.GetGroup("PersistentToolbars").GetBool("Enabled", 1):
-    import PersistentToolbarsGui
+    try:
+        import PersistentToolbarsGui
+    except Exception:
+        import FreeCAD
+        import traceback
+        FreeCAD.Console.PrintWarning("Tux: PersistentToolbars failed to load; continuing without it.\n")
+        FreeCAD.Console.PrintLog(traceback.format_exc() + "\n")
 else:
     pass
 

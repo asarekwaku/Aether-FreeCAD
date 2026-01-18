@@ -260,8 +260,11 @@ bool CrossSections::apply()
     Standard::SetReentrant(Standard_True);
     for (std::vector<App::DocumentObject*>::iterator it = obj.begin(); it != obj.end(); ++it) {
         Part::CrossSection cs(a, b, c, static_cast<Part::Feature*>(*it)->Shape.getValue());
-        QFuture<std::list<TopoDS_Wire>> future
-            = QtConcurrent::mapped(d, std::bind(&Part::CrossSection::section, &cs, sp::_1));
+        // Use std::function to provide result_type for Qt5's QtConcurrent::mapped
+        std::function<std::list<TopoDS_Wire>(double)> sectionFunc = [&cs](double pos) {
+            return cs.section(pos);
+        };
+        QFuture<std::list<TopoDS_Wire>> future = QtConcurrent::mapped(d, sectionFunc);
         future.waitForFinished();
         QFuture<std::list<TopoDS_Wire>>::const_iterator ft;
         TopoDS_Compound comp;

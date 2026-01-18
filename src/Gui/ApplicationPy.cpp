@@ -1076,10 +1076,19 @@ PyObject* ApplicationPy::sAddPreferencePage(PyObject* /*self*/, PyObject* args)
     char* fn = nullptr;
     char* grp = nullptr;
     if (PyArg_ParseTuple(args, "ss", &fn, &grp)) {
-        QFileInfo fi(QString::fromUtf8(fn));
-        if (!fi.exists()) {
-            PyErr_SetString(PyExc_RuntimeError, "UI file does not exist");
-            return nullptr;
+        const QString qfn = QString::fromUtf8(fn);
+
+        // For Qt resource paths (":/...") we deliberately skip existence checks here.
+        // Those resources are typically registered via PySide (Draft_rc, Tux_rc, ...)
+        // into a different Qt library instance than the one used by this C++ code,
+        // so QFileInfo/QFile in C++ may not see them even though they are valid.
+        // Let the downstream PrefPageUiProducer / PySide layer handle any errors.
+        if (!qfn.startsWith(QLatin1String(":/"))) {
+            QFileInfo fi(qfn);
+            if (!fi.exists()) {
+                PyErr_SetString(PyExc_RuntimeError, "UI file does not exist");
+                return nullptr;
+            }
         }
 
         // add to the preferences dialog
@@ -1117,27 +1126,9 @@ PyObject* ApplicationPy::sActivateWorkbenchHandler(PyObject* /*self*/, PyObject*
         bool ok = Application::Instance->activateWorkbench(psKey);
         return Py::new_reference_to(Py::Boolean(ok));
     }
+
     catch (const Base::Exception& e) {
-        std::stringstream err;
-        err << psKey << ": " << e.what();
-        PyErr_SetString(e.getPyExceptionType(), err.str().c_str());
-        return nullptr;
-    }
-    catch (const XERCES_CPP_NAMESPACE::TranscodingException& e) {
-        std::stringstream err;
-        char* pMsg = XERCES_CPP_NAMESPACE::XMLString::transcode(e.getMessage());
-        err << "Transcoding exception in Xerces-c:\n\n"
-            << "Transcoding exception raised in activateWorkbench.\n"
-            << "Check if your user configuration file is valid.\n"
-            << "  Exception message:" << pMsg;
-        XERCES_CPP_NAMESPACE::XMLString::release(&pMsg);
-        PyErr_SetString(PyExc_RuntimeError, err.str().c_str());
-        return nullptr;
-    }
-    catch (...) {
-        std::stringstream err;
-        err << "Unknown C++ exception raised in activateWorkbench('" << psKey << "')";
-        PyErr_SetString(Base::PyExc_FC_GeneralError, err.str().c_str());
+        e.setPyException();
         return nullptr;
     }
 }

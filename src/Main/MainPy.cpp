@@ -46,6 +46,7 @@
 #include <Base/Exception.h>
 #include <Base/PyObjectBase.h>
 #include <Base/Sequencer.h>
+#include <Base/Interpreter.h>
 #include <App/Application.h>
 
 #if defined(FC_OS_WIN32)
@@ -182,6 +183,9 @@ PyMOD_INIT_FUNC(FreeCAD)
     std::cout.rdbuf(&stdcout);
     std::clog.rdbuf(&stdclog);
     std::cerr.rdbuf(&stdcerr);
+
+    // Load VantX integration if available
+    Base::Interpreter().tryLoadVantXBootstrap();
 
     PyObject* modules = PyImport_GetModuleDict();
     PyObject* module = PyDict_GetItemString(modules, "FreeCAD");

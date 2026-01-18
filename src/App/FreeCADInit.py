@@ -69,6 +69,61 @@ except ImportError:
     raise
 
 # ┌────────────────────────────────────────────────┐
+# │ Early macOS PySide Compatibility Setup         │
+# └────────────────────────────────────────────────┘
+# Add PySide compatibility wrapper path BEFORE any modules try to import PySide
+# This must happen very early, before InitPipeline runs
+if platform.system() == "Darwin":
+    try:
+        # Try multiple methods to find FreeCAD home directory
+        pyside_path = None
+        
+        # Method 1: Try App.getHomePath() if available
+        try:
+            freecad_home = App.getHomePath()
+            if freecad_home:
+                pyside_path = os.path.join(freecad_home, "MacOS", "PySide")
+        except Exception:
+            pass
+        
+        # Method 2: Try to find from sys.executable
+        if not pyside_path or not os.path.exists(pyside_path):
+            try:
+                exe_path = sys.executable
+                if exe_path:
+                    # FreeCAD executable is in MacOS/, so go up one level
+                    exe_dir = os.path.dirname(exe_path)
+                    if os.path.basename(exe_dir) == "MacOS":
+                        freecad_home = os.path.dirname(exe_dir)
+                        pyside_path = os.path.join(freecad_home, "MacOS", "PySide")
+            except Exception:
+                pass
+        
+        # Method 3: Try common FreeCAD installation paths
+        if not pyside_path or not os.path.exists(pyside_path):
+            common_paths = [
+                "/Applications/FreeCAD.app/Contents/Resources",
+                "/opt/homebrew/Cellar/freecad",
+                os.path.expanduser("~/Applications/FreeCAD.app/Contents/Resources"),
+            ]
+            for base in common_paths:
+                test_path = os.path.join(base, "MacOS", "PySide")
+                if os.path.exists(test_path):
+                    pyside_path = test_path
+                    break
+        
+        # Add MacOS directory (parent of PySide) to sys.path if found
+        # Python will then find PySide as a module in that directory
+        if pyside_path and os.path.exists(pyside_path):
+            macos_path = os.path.dirname(pyside_path)  # Get MacOS directory
+            if macos_path not in sys.path:
+                sys.path.insert(0, macos_path)
+                App.Console.PrintLog(f"Init: Added MacOS path for PySide compatibility: {macos_path}\n")
+    except Exception as e:
+        # Log but don't fail
+        App.Console.PrintWarning(f"Init: Could not add PySide path: {e}\n")
+
+# ┌────────────────────────────────────────────────┐
 # │ Logging Frameworks                             │
 # └────────────────────────────────────────────────┘
 
@@ -927,6 +982,19 @@ class DarwinPlatform:
     def post(self) -> None:
         # add special path for MacOSX (bug #0000307): Where is this bug documented?
         sys.path.append(os.path.expanduser("~/Library/Application Support/FreeCAD/Mod"))
+        
+        # Add PySide compatibility wrapper path for macOS
+        # This allows modules to import PySide.* even though we're using PySide6
+        try:
+            freecad_home = App.getHomePath()
+            if freecad_home:
+                pyside_path = os.path.join(freecad_home, "MacOS", "PySide")
+                if os.path.exists(pyside_path) and pyside_path not in sys.path:
+                    sys.path.insert(0, pyside_path)
+                    App.Console.PrintLog(f"Init: Added PySide compatibility path: {pyside_path}\n")
+        except Exception:
+            # Silently fail if path can't be determined
+            pass
 
 
 class ModState(IntEnum):

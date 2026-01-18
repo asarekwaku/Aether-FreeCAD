@@ -120,7 +120,8 @@
 #endif  // HAVE_SHIBOKEN
 
 #ifdef HAVE_PYSIDE
-# include <signalmanager.h>
+// signalmanager.h is not available in PySide6 >= 6.10
+// # include <signalmanager.h>
 #endif  // HAVE_PYSIDE
 
 //-----------------------------------------------------------------------------
@@ -252,7 +253,7 @@ PythonToCppFunc isBaseQuantity_PythonToCpp_QVariantConvertible(PyObject* obj)
     return nullptr;
 }
 
-# if defined(HAVE_PYSIDE)
+# if defined(HAVE_PYSIDE2)
 Base::Quantity convertWrapperToQuantity(const PySide::PyObjectWrapper& w)
 {
     auto pyIn = static_cast<PyObject*>(w);
@@ -286,7 +287,7 @@ void registerTypes()
         );
     }
 
-# if defined(HAVE_PYSIDE)
+# if defined(HAVE_PYSIDE2)
     QMetaType::registerConverter<PySide::PyObjectWrapper, Base::Quantity>(&convertWrapperToQuantity);
 # endif
 }

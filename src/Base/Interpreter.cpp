@@ -617,6 +617,7 @@ void initInterpreter(int argc, char* argv[])
     PyConfig config;
     PyConfig_InitIsolatedConfig(&config);
     config.isolated = 0;
+    config.use_environment = 1;
     config.user_site_directory = 1;
 
     status = PyConfig_SetBytesArgv(&config, argc, argv);
@@ -629,12 +630,13 @@ void initInterpreter(int argc, char* argv[])
         throw Base::RuntimeError("Failed to init from config");
     }
 
+    PyConfig_Clear(&config);
+
     // If FreeCAD was run from within a Python virtual environment, ensure that the site-packages
     // directory from that environment is used.
     const char* virtualenv = getenv("VIRTUAL_ENV");
     if (virtualenv) {
         std::wstringstream ss;
-        PyConfig_Read(&config);
         ss << virtualenv << L"/lib/python" << PY_MAJOR_VERSION << "." << PY_MINOR_VERSION
            << "/site-packages";
         PyObject* venvLocation = PyUnicode_FromWideChar(ss.str().c_str(), ss.str().size());
@@ -642,7 +644,48 @@ void initInterpreter(int argc, char* argv[])
         PyList_Append(path, venvLocation);
     }
 
-    PyConfig_Clear(&config);
+    // Add PySide compatibility wrapper path on macOS
+    // This must happen after Py_InitializeFromConfig but before any Python modules try to import PySide
+# ifdef FC_OS_MACOSX
+    {
+        PyObject* path = PySys_GetObject("path");
+        if (path && PyList_Check(path)) {
+            // Get executable path to determine FreeCAD home directory
+            if (argc > 0 && argv[0]) {
+                std::string exe_path = argv[0];
+                std::string::size_type pos = exe_path.find_last_of("/");
+                if (pos != std::string::npos) {
+                    std::string exe_dir = exe_path.substr(0, pos);
+                    // If executable is in MacOS/ directory, go up one level
+                    std::string::size_type macos_pos = exe_dir.find_last_of("/");
+                    if (macos_pos != std::string::npos) {
+                        std::string basename = exe_dir.substr(macos_pos + 1);
+                        if (basename == "MacOS") {
+                            std::string freecad_home = exe_dir.substr(0, macos_pos + 1);
+                            std::string macos_path = freecad_home + "MacOS";
+                            std::string pyside_init = macos_path + "/PySide/__init__.py";
+
+                            // Check if PySide directory exists before adding MacOS to path
+                            FILE* test_file = fopen(pyside_init.c_str(), "r");
+                            if (test_file) {
+                                fclose(test_file);
+                                PyObject* macos_path_obj = PyUnicode_FromString(macos_path.c_str());
+                                if (macos_path_obj) {
+                                    PyList_Insert(path, 0, macos_path_obj);
+                                    Py_DECREF(macos_path_obj);
+                                    Base::Console().log(
+                                        "Init: Added MacOS path for PySide compatibility: %s\n",
+                                        macos_path.c_str()
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+# endif
 
     Py_Initialize();
 }
@@ -726,6 +769,78 @@ void InterpreterSingleton::Destruct()
     _pcSingleton = nullptr;
 }
 
+void InterpreterSingleton::tryLoadVantXBootstrap()
+{
+    // Check environment variable (default: enabled unless explicitly set to "0")
+    const char* vantx_env = std::getenv("VANTX");
+    if (vantx_env && std::string(vantx_env) == "0") {
+        Base::Console().error("VantX: Disabled by env var\n");
+        return;  // VantX disabled, skip bootstrap
+    }
+
+    Base::Console().error("VantX: Attempting to bootstrap...\n");
+
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    try {
+        // Try to import aether_core.integration.startup
+        PyObject* startup_module = PyImport_ImportModule("aether_core.integration.startup");
+        if (!startup_module) {
+            // Module not found - VantX not installed, gracefully continue
+            if (PyErr_Occurred()) {
+                PyObject *ptype, *pvalue, *ptraceback;
+                PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+
+                // Check if it's an ImportError or ModuleNotFoundError
+                if (ptype
+                    && (PyErr_GivenExceptionMatches(ptype, PyExc_ImportError)
+                        || PyErr_GivenExceptionMatches(ptype, PyExc_ModuleNotFoundError))) {
+                    // Expected - VantX not installed, continue silently
+                    Base::Console().error(
+                        "VantX: Module 'aether_core.integration.startup' NOT FOUND.\n"
+                    );
+                    Py_XDECREF(ptype);
+                    Py_XDECREF(pvalue);
+                    Py_XDECREF(ptraceback);
+                    PyGILState_Release(gstate);
+                    return;
+                }
+
+                // Other import error - restore and log it
+                PyErr_Restore(ptype, pvalue, ptraceback);
+                Base::Console().warning("VantX: Import error during bootstrap:\n");
+                PyErr_Print();
+                Base::Console().error("VantX: Bootstrap FAILED with exception.\n");
+            }
+        }
+        else {
+            Base::Console().error("VantX: Module loaded successfully. Calling bootstrap()...\n");
+            // Call bootstrap() function
+            PyObject* bootstrap_func = PyObject_GetAttrString(startup_module, "bootstrap");
+            if (bootstrap_func && PyCallable_Check(bootstrap_func)) {
+                PyObject* result = PyObject_CallObject(bootstrap_func, NULL);
+                if (result) {
+                    Base::Console().error("VantX: Bootstrap function executed successfully.\n");
+                    Py_DECREF(result);
+                }
+                else {
+                    Base::Console().error("VantX: Bootstrap function call FAILED.\n");
+                    PyErr_Print();
+                }
+                Py_DECREF(bootstrap_func);
+            }
+            else {
+                Base::Console().error("VantX: 'bootstrap' function not found in module.\n");
+            }
+            Py_DECREF(startup_module);
+        }
+    }
+    catch (...) {
+        Base::Console().error("VantX: Generic C++ exception during bootstrap.\n");
+    }
+    PyGILState_Release(gstate);
+}
+
+
 int InterpreterSingleton::runCommandLine(const char* prompt)
 {
     PyGILStateLocker locker;
@@ -789,8 +904,7 @@ void InterpreterSingleton::runMethod(
     pmeth = PyObject_GetAttrString(pobject, method);
     if (!pmeth) { /* get callable object */
         va_end(argslist);
-        throw AttributeError(
-            "Error running InterpreterSingleton::RunMethod() method not defined"
+        throw AttributeError("Error running InterpreterSingleton::RunMethod() method not defined"
         ); /* bound method?
               has self */
     }

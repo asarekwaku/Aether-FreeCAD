@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     putenv("PYTHONPATH=");
 #elif defined(FC_OS_MACOSX)
     (void)QLocale::system();
-    putenv("PYTHONPATH=");
+
 #elif defined(__MINGW32__)
     const char* mingw_prefix = getenv("MINGW_PREFIX");
     const char* py_home = getenv("PYTHONHOME");
@@ -219,9 +219,8 @@ int main(int argc, char** argv)
         App::Application::init(argc, argv);
 #endif
         // to set window icon on wayland, the desktop file has to be available to the compositor
-        QGuiApplication::setDesktopFileName(
-            QString::fromStdString(App::Application::Config()["DesktopFileName"])
-        );
+        QGuiApplication::setDesktopFileName(QString::fromStdString(App::Application::Config(
+        )["DesktopFileName"]));
 
 #if defined(_MSC_VER)
         // create a dump file when the application crashes
@@ -242,6 +241,9 @@ int main(int argc, char** argv)
         }
 
         Gui::Application::initApplication();
+
+        // Load VantX integration if available
+        Base::Interpreter().tryLoadVantXBootstrap();
 
         // Only if 'RunMode' is set to 'Gui' do the replacement
         if (App::Application::Config()["RunMode"] == "Gui") {
@@ -276,11 +278,9 @@ int main(int argc, char** argv)
         QApplication app(argc, argv);
         QString appName = QString::fromStdString(App::Application::Config()["ExeName"]);
         QString msg;
-        msg = QObject::tr(
-                  "While initializing %1 the following exception occurred: '%2'\n\n"
-                  "Python is searching for its files in the following directories:\n%3\n\n"
-                  "Python version information:\n%4\n"
-        )
+        msg = QObject::tr("While initializing %1 the following exception occurred: '%2'\n\n"
+                          "Python is searching for its files in the following directories:\n%3\n\n"
+                          "Python version information:\n%4\n")
                   .arg(
                       appName,
                       QString::fromUtf8(e.what()),
@@ -291,10 +291,8 @@ int main(int argc, char** argv)
         if (pythonhome) {
             msg += QObject::tr("\nThe environment variable PYTHONHOME is set to '%1'.")
                        .arg(QString::fromUtf8(pythonhome));
-            msg += QObject::tr(
-                "\nSetting this environment variable might cause Python to fail. "
-                "Please contact your administrator to unset it on your system.\n\n"
-            );
+            msg += QObject::tr("\nSetting this environment variable might cause Python to fail. "
+                               "Please contact your administrator to unset it on your system.\n\n");
         }
         else {
             msg += QObject::tr(
@@ -331,6 +329,9 @@ int main(int argc, char** argv)
             Gui::Application::runApplication();
         }
         else {
+            // Load VantX integration if available (CLI mode)
+            Base::Interpreter().tryLoadVantXBootstrap();
+
             App::Application::runApplication();
         }
     }

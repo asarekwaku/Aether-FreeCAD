@@ -325,6 +325,9 @@ public:
     void replaceStdOutput();
     static InterpreterSingleton& Instance();
     static void Destruct();
+    
+    /** Try to load VantX bootstrap module if available */
+    static void tryLoadVantXBootstrap();
     //@}
 
     /** @name external wrapper libs

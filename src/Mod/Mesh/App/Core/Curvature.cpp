@@ -82,8 +82,11 @@ void MeshCurvature::ComputePerFace(bool parallel)
     }
     else {
         // NOLINTBEGIN
-        QFuture<CurvatureInfo> future
-            = QtConcurrent::mapped(mySegment, std::bind(&FacetCurvature::Compute, &face, sp::_1));
+        // Use std::function to provide result_type for Qt5's QtConcurrent::mapped
+        std::function<CurvatureInfo(unsigned long)> computeFunc = [&face](unsigned long index) {
+            return face.Compute(index);
+        };
+        QFuture<CurvatureInfo> future = QtConcurrent::mapped(mySegment, computeFunc);
         // NOLINTEND
         QFutureWatcher<CurvatureInfo> watcher;
         watcher.setFuture(future);

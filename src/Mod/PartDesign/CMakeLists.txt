@@ -188,7 +188,9 @@ INSTALL(
         ${CMAKE_INSTALL_DATADIR}/Mod/PartDesign/Resources/Hole
 )
 
-if(BUILD_FEM)
+if(BUILD_GUI)
+    # WizardShaft is a Python-only tool used by PartDesign; it should be available
+    # even when FEM is disabled.
     SET(WizardShaft_SRCS
         ${PartDesign_WizardShaft}
     )
@@ -210,4 +212,4 @@ if(BUILD_FEM)
         DESTINATION
             Mod/PartDesign/WizardShaft
     )
-endif(BUILD_FEM)
+endif(BUILD_GUI)
