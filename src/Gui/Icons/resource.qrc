@@ -106,6 +106,9 @@
         <file>freecadsplash11.png</file>
         <file>freecadsplash12_2x.png</file>
         <file>freecadsplash12.png</file>
+        <file alias="VentX">VentX.png</file>
+        <file alias="VentXSplash">VentXSplash.png</file>
+        <file alias="VentXAbout">VentXAbout.png</file>
         <file>freecadsplash2_2x.png</file>
         <file>freecadsplash2.png</file>
         <file>freecadsplash3_2x.png</file>

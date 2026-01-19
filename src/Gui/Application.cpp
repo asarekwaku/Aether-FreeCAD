@@ -1198,12 +1198,10 @@ void Application::checkForRecomputes()
     auto res = QMessageBox::warning(
         getMainWindow(),
         QObject::tr("Recomputation required"),
-        QObject::tr(
-            "Some documents require recomputation for migration purposes. "
-            "It is highly recommended to perform a recomputation before "
-            "any modification to avoid compatibility problems.\n\n"
-            "Recompute now?"
-        ),
+        QObject::tr("Some documents require recomputation for migration purposes. "
+                    "It is highly recommended to perform a recomputation before "
+                    "any modification to avoid compatibility problems.\n\n"
+                    "Recompute now?"),
         QMessageBox::Yes | QMessageBox::No,
         QMessageBox::Yes
     );
@@ -1224,10 +1222,8 @@ void Application::checkForRecomputes()
         QMessageBox::critical(
             getMainWindow(),
             QObject::tr("Recompute error"),
-            QObject::tr(
-                "Failed to recompute some documents.\n"
-                "Check the report view for more details."
-            )
+            QObject::tr("Failed to recompute some documents.\n"
+                        "Check the report view for more details.")
         );
     }
 }
@@ -1238,11 +1234,9 @@ void Application::checkPartialRestore(App::Document* doc)
         QMessageBox::critical(
             getMainWindow(),
             QObject::tr("Error"),
-            QObject::tr(
-                "There were errors while loading the file. Some data might have been "
-                "modified or not recovered at all. Look in the report view for more "
-                "specific information about the objects involved."
-            )
+            QObject::tr("There were errors while loading the file. Some data might have been "
+                        "modified or not recovered at all. Look in the report view for more "
+                        "specific information about the objects involved.")
         );
     }
 }
@@ -1253,11 +1247,9 @@ void Application::checkRestoreError(App::Document* doc)
         QMessageBox::critical(
             getMainWindow(),
             QObject::tr("Error"),
-            QObject::tr(
-                "There were serious errors while loading the file. Some data might have "
-                "been modified or not recovered at all. Saving the project will most "
-                "likely result in loss of data."
-            )
+            QObject::tr("There were serious errors while loading the file. Some data might have "
+                        "been modified or not recovered at all. Saving the project will most "
+                        "likely result in loss of data.")
         );
     }
 }
@@ -2431,8 +2423,21 @@ void setAppNameAndIcon()
         QApplication::setApplicationName(QString::fromUtf8(it->second.c_str()));
     }
     else {
-        QApplication::setApplicationName(QString::fromStdString(App::Application::getExecutableName()));
+        QApplication::setApplicationName(QString::fromStdString(App::Application::getExecutableName())
+        );
     }
+
+    // Set organization name for macOS menu bar and preferences
+    auto vendor = cfg.find("ExeVendor");
+    if (vendor != cfg.end()) {
+        QApplication::setOrganizationName(QString::fromUtf8(vendor->second.c_str()));
+    }
+
+    auto url = cfg.find("MaintainerUrl");
+    if (url != cfg.end()) {
+        QApplication::setOrganizationDomain(QString::fromUtf8(url->second.c_str()));
+    }
+
 #ifndef Q_OS_MACOS
     QApplication::setWindowIcon(
         Gui::BitmapFactory().pixmap(App::Application::Config()["AppIcon"].c_str())
@@ -2475,10 +2480,8 @@ void tryRunEventLoop(GUISingleApplication& mainApp)
             fi.deleteFile();
         }
         else {
-            Base::Console().warning(
-                "Failed to create a file lock for the IPC.\n"
-                "The application will be terminated\n"
-            );
+            Base::Console().warning("Failed to create a file lock for the IPC.\n"
+                                    "The application will be terminated\n");
         }
     }
     catch (const boost::interprocess::interprocess_exception& e) {
@@ -2767,7 +2770,8 @@ void Application::reloadStyleSheet()
 
 QString Application::replaceVariablesInQss(const QString& qssText)
 {
-    return QString::fromStdString(d->styleParameterManager->replacePlaceholders(qssText.toStdString()));
+    return QString::fromStdString(d->styleParameterManager->replacePlaceholders(qssText.toStdString())
+    );
 }
 
 void Application::setStyle(const QString& name)
@@ -2816,12 +2820,10 @@ void Application::checkForDeprecatedSettings()
                                      ->GetBool("UseFCBakExtension", true);
         if (!useFCBakExtension) {
             // TODO: This should be translated
-            Base::Console().warning(
-                "The `.FCStd#` backup format is deprecated and may "
-                "be removed in future versions.\n"
-                "To update, check the 'Preferences->General->Document->Use "
-                "date and FCBak extension' option.\n"
-            );
+            Base::Console().warning("The `.FCStd#` backup format is deprecated and may "
+                                    "be removed in future versions.\n"
+                                    "To update, check the 'Preferences->General->Document->Use "
+                                    "date and FCBak extension' option.\n");
         }
     }
 }

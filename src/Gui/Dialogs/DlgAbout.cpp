@@ -216,7 +216,7 @@ void AboutDialog::setupLabels()
     QString mturl = QString::fromStdString(config["MaintainerUrl"]);
 
     // we use replace() to keep label formatting, so a label with text "<b>Unknown</b>"
-    // gets replaced to "<b>FreeCAD</b>", for example
+    // gets replaced to "<b>VentX</b>", for example
 
     QString author = ui->labelAuthor->text();
     author.replace(QStringLiteral("Unknown Application"), exeName);
@@ -330,7 +330,7 @@ void AboutDialog::showCredits()
     QString creditsHTML
         = QStringLiteral("<html><body><h1>%1</h1><p>%2</p><h2>%3</h2><ul>")
               .arg(tr("Credits", "Header for the Credits tab of the About screen"))
-              .arg(tr("FreeCAD would not be possible without the contributions of:"))
+              .arg(tr("VentX would not be possible without the contributions of:"))
               .arg(tr("Individuals", "Header for the list of individual people in the Credits list."));
 
     QTextStream stream(&creditsFile);

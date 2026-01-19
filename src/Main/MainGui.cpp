@@ -52,9 +52,8 @@
 
 void PrintInitHelp();
 
-const char sBanner[]
-    = "(C) 2001-2025 FreeCAD contributors\n"
-      "FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.\n\n";
+static const char sBanner[] = "(C) 2026 VentX contributors\n"
+                              "VentX is proprietary software.\n\n";
 
 #if defined(_MSC_VER)
 void InitMiniDumpWriter(const std::string&);
@@ -184,18 +183,19 @@ int main(int argc, char** argv)
 #endif
 
     // Name and Version of the Application
-    App::Application::Config()["ExeName"] = "FreeCAD";
-    App::Application::Config()["ExeVendor"] = "FreeCAD";
+    App::Application::Config()["ExeName"] = "VentX";
+    App::Application::Config()["ExeVendor"] = "Aether";
+    App::Application::Config()["Application"] = "VentX";  // For QApplication menu bar
     App::Application::Config()["AppDataSkipVendor"] = "true";
-    App::Application::Config()["MaintainerUrl"] = "https://freecad.org";
+    App::Application::Config()["MaintainerUrl"] = "https://aether.org";
 
     // set the banner (for logging and console)
     App::Application::Config()["CopyrightInfo"] = sBanner;
-    App::Application::Config()["AppIcon"] = "freecad";
-    App::Application::Config()["SplashScreen"] = "freecadsplash";
+    App::Application::Config()["AppIcon"] = "VentX";
+    App::Application::Config()["SplashScreen"] = "VentXSplash";
     App::Application::Config()["AboutImage"] = App::Application::isDevelopmentVersion()
-        ? "freecadaboutdev"
-        : "freecadabout";
+        ? "VentXAbout"
+        : "VentXAbout";
     App::Application::Config()["StartWorkbench"] = "PartDesignWorkbench";
     // App::Application::Config()["HiddenDockWindow"] = "Property editor";
     App::Application::Config()["SplashAlignment"] = "Bottom|Left";
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     App::Application::Config()["SplashWarningColor"] = "#CA333B";
     App::Application::Config()["SplashInfoColor"] = "#000000";
     App::Application::Config()["SplashInfoPosition"] = "6,75";
-    App::Application::Config()["DesktopFileName"] = "org.freecad.FreeCAD";
+    App::Application::Config()["DesktopFileName"] = "org.aether.VentX";
 
     try {
         // Init phase ===========================================================
